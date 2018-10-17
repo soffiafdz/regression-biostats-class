@@ -1,0 +1,57 @@
+---
+title: "Ex. 11.2"
+author: "Sofía Fernández"
+date: "September 24, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+```
+
+## Problema
+
+The data in the table (Everitt and Rabe-Hesketh, 2001) are the survival times (in months) after mastectomy of women with breast cancer. The cancers are classified as having metastasised or not based on a histochemical marker. Censoring is indicated by the event variable being TRUE in case of death. Plot the survivor functions of each group, estimated using the Kaplan-Meier estimate, on the same graph and comment on the differences. Use a log-rank test to compare the survival experience of each group more formally.
+
+## Datos
+
+```{r data}
+tibble::as.tibble(HSAUR::mastectomy)
+```
+
+
+## Gráfica
+
+Con la función `ggsurvplot` de la paquetería `survminer` se graficó la función de sobrevivencia de las mujeres que con cáncer después de una mastectomía dependiendo de si el cáncer había metastizado o no. Esta función fue estimada usando la estimación de Kaplan-Meier: 
+
+```{r estimate}
+survival::survdiff(survival::Surv(time, event) ~ metastized, data = HSAUR::mastectomy)
+```
+
+```{r plot, message=FALSE, warning=FALSE}
+library(survminer)
+library(survival)
+ggsurvplot(
+    survfit(Surv(time, event) ~ metastized, data = HSAUR::mastectomy), 
+    data = HSAUR::mastectomy, 
+    size = 0.7,
+    linetype = c("dashed", "dotted"),
+    title   = "Mastectomy",
+    xlab = "Months after mastectomy", 
+    conf.int = TRUE,
+    pval = TRUE,    
+    risk.table = TRUE,
+    risk.table.col = "strata",
+    legend.labs = c("No metastized","Metastized"),
+    surv.median.line = "hv",
+    ggtheme = theme_minimal()
+)
+```
+
+Con el gráfico se puede observar una diferencia entre los grupos principalmente en los primeros meses después de la mastectomía. Para confirmar el análisis se realizará una prueba *log-rank* más formal. 
+
+```{r log-rank}
+coin::logrank_test(survival::Surv(time, event) ~ metastized, data = HSAUR::mastectomy, distribution = "exact")
+```
+
+Debido a que el valor de *p* es mayor a 0.05 se mantiene la hipótesis nula de que el que el cáncer de mama haya metastizado no es un factor significativo en la sobrevivencia para aquellas mujeres que han llevado una mastectomía. 

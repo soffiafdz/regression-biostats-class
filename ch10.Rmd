@@ -1,0 +1,173 @@
+---
+title: "Ch10 Multiple Regression and Correlation"
+author: "Sofía Fernández"
+date: "October 10, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 10.3.3
+## Problema
+Obtain the regression equation on this dataset. In a study of factors thought to be related to patterns of admission to a large general hospital, an administrator obtained these data on 10 communities in the hospital’s catchment area:  
+
+Y 
+: Persons per 1000, Population admitted during study period;
+
+X~1~ 
+: Index of availability of other health services; 
+
+X~2~ 
+: Index of indigency;
+
+## Datos
+
+```{r data1, message=FALSE, warning=FALSE}
+ex10_3_3 <- readr::read_csv("data_daniels/ch10_all/ch10_all/EXR_C10_S03_03.csv")
+ex10_3_3
+```
+
+
+## Gráfica exploratoria
+
+```{r plot1}
+my_line <- function(x,y,...){
+    points(x,y,...)
+    abline(lm(y ~ x))
+}
+
+pairs(ex10_3_3, lower.panel = my_line, upper.panel = NULL)
+```
+
+En la gráfica *grosso modo* se puede apreciar que hay una relación entre la variable predictora 1 y la variable predecida. Aunque la segunda variable predictora no muestra relación con la predecida, sí se observa una posible relación negativa entre las variables predictoras. Aunque esta información no es útil para el modelo, podría interpretarse como que en las comunidades, entre más disponibilidad hay de servicios de salud es menor el índice de indigencia; lo que podría deberse al status socioeconómico de la comunidad en sí. 
+
+## Ecuación de regresión
+
+```{r eq1}
+summary(lm(Y ~ X1 + X2, data = ex10_3_3))
+```
+La ecuación de la regresión resulta: 
+$$ \widehat{y}_j = 13.45 + 4.02x_{1j} + 2.81x_{2j} $$
+
+Revisando los resultados del modelo se puede concluir que este explica un 57% de la variabilidad de los datos $ (R^2 = 0.573) $. Se puede inferir que entre mayor disponibilidad de servicios de salud hay en una comunidad, mayor número de personas son referidas al hospital. Esto podría deberse a que debido a esta misma disponibilidad, los médicos la aprovechan para referir a sus pacientes. Por cada valor del índice de disponibilidad que aumente, el modelo predice que 4 personas más por cada 1000 serán referidas. 
+
+
+# 10.3.5
+## Problema
+A random sample of 25 nurses selected from a state registry yielded the following information on each nurse’s score on the state board examination and his or her final score in school. Both scores relate to the nurse’s area of affiliation. Additional information on the score made by each nurse on an aptitude test, taken at the time of entering nursing school, was made available to the researcher. The complete data are as follows:  
+
+Y 
+
+: State Board Score; 
+
+X~1~ 
+
+: Final score; 
+
+X~2~ 
+
+: Aptitude test score;
+
+## Datos
+
+```{r data2, message=FALSE, warning=FALSE, paged.print=FALSE}
+ex10_3_5 <- readr::read_csv("data_daniels/ch10_all/ch10_all/EXR_C10_S03_05.csv")
+ex10_3_5
+```
+
+
+## Gráfica exploratoria
+
+```{r plot2}
+my_line <- function(x,y,...){
+    points(x,y,...)
+    abline(lm(y ~ x))
+}
+
+pairs(ex10_3_5, lower.panel = my_line, upper.panel = NULL)
+```
+
+De igual forma que el ejercicio anterior, la primer variable predictora, o la calificación final de su universidad muestra superficialmente antes de cualquier análisis una posible relación con su desempeño evaluado en el campo. La segunda variable predictora, los resultados de una prueba de aptitudes, por su parte, muestran una muy ligera relación negativa, pudiendo significar que aquellos enfermeros que mostraron mayor aptitud hacia la profesión se desempeñan peor en el campo. No se aprecia relación alguna entre los resultados de aptitudes y el desempeño escolar.  
+
+## Ecuación de regresión
+
+```{r eq2}
+summary(lm(Y ~ X1 + X2, data = ex10_3_5))
+```
+La ecuación de la regresión resulta: 
+$$ \widehat{y}_j = - 422 + 11.17x_{1j} -0.63x_{2j} $$
+
+En este modelo, al igual que el anterior, solo el efecto de una variable resulta significativo: el desempeño final en la carrera universitaria $ (p < 0.01) $. Como era de esperarse, la relación inversa observada en la segunda variable, o que entre mayor aptitud hayan demostrado peor su desempeño final es muy poco significativa. El modelo, a pesar de ser significativo, solo explica al rededor del 24% de la variabilidad $ (R^2 = 0.2448) $. 
+
+# 10.8
+## Problema
+In a study of the relationship between creatinine excretion, height, and weight, the data shown in the following table were collected on 20 infant males:
+
+Y 
+: Creatinine excretion - mg/day; 
+
+X~1~ 
+: Weight - kg; 
+
+X~2~ 
+: Height - cm;
+
+1. Find the multiple regression equation describing the relationship among these variables.
+2. Compute $R^2$ and do an analysis of variance.
+3. Let $X_1 = 10$ and $X_2 = 60$ and find the predicted value of $Z$.
+
+## Datos
+
+```{r data3, message=FALSE, warning=FALSE, paged.print=FALSE}
+ex10_8 <- readr::read_csv("data_daniels/ch10_all/ch10_all/REV_C10_08.csv")
+ex10_8
+```
+
+## Gráfica exploratoria
+
+```{r plot3}
+my_line <- function(x,y,...){
+    points(x,y,...)
+    abline(lm(y ~ x))
+}
+
+pairs(ex10_8[-1], lower.panel = my_line, upper.panel = NULL)
+```
+
+En la gráfica exploratoria se observa claramente una relación muy fuerte entre tanto el peso y la altura de los infantes sobre sus niveles de excreción de creatinina. Como era de esperarse, existe del mismo mopdo una fuerte relación entre ambas variables predictoras. 
+
+## Ecuación de regresión
+
+```{r eq3}
+mod <- lm(CREATIN ~ WEIGHT + HEIGHT, data = ex10_8)
+mod$coefficients
+```
+La ecuación de la regresión resulta: 
+$$ \widehat{y}_j = 23.19 + 17.55x_{1j} - 1.10x_{2j} $$
+
+A pesar de tener una relacion positiva, a diferencia del peso, a mayor altura del infante se disminuye la excreción de creatinina. Esto podría deberse a que el efecto del peso sobre la variable predictora es mucho mayor.
+
+## $R^2$ and ANOVA
+
+```{r model}
+summary(mod)
+```
+
+El modelo explica un 90% de la varianza total de los datos: 
+
+$$ R^2 = 0.906 $$
+
+El análisis de varianza resultó significativo: $$F_{2,17} = 92.99, p < 0.001$$
+
+## Predicción
+
+```{r pred}
+newdata <- data.frame(WEIGHT = 10, HEIGHT = 60)
+predict(mod, newdata)
+```
+
+Teniendo unos valores hipotéticos de 10kg y 60cm como peso y altura respectivamente, el modelo de regresión predice que el infante tendría unos niveles de creatinina a 132.44 mg/día.
