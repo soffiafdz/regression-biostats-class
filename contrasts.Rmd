@@ -1,0 +1,202 @@
+---
+title: "Contrasts"
+author: "Sofía Fernández"
+date: "October 18, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(car, lsmeans, emmeans, multcomp, tidyverse)
+```
+
+### Loading the data 
+
+The data was downloaded from the book's resources and loaded as a comma separated values file. Afterwards the dataset was filtered so only the woman without diabetes were kept. 
+
+```{r data, message=FALSE, warning=FALSE}
+hers <- read_csv("hersdata.csv")
+hers_nodi <- filter(hers, diabetes == "no")
+```
+
+```{r show data, echo=FALSE, paged.print=FALSE}
+hers_nodi
+```
+
+### Ordering the Physical activity (`physact`) 
+
+```{r ordering factor}
+physact_levels <- c("much less active",
+                    "somewhat less active",
+                    "about as active",
+                    "somewhat more active",
+                    "much more active")
+
+hers_nodi <- mutate(hers_nodi, 
+                    physact = ordered(physact, 
+                                      levels = physact_levels))
+```
+
+```{r physact, echo=FALSE}
+head(hers_nodi$physact)
+```
+
+### Plot 
+
+```{r ggplot}
+ggplot(hers_nodi, aes(physact, glucose)) + 
+    geom_boxplot(na.rm = TRUE)
+```
+
+## LM 
+
+First the linear model was created and saved as `glucose_fit_act`. Seeing if the glucose variable changes can be explained by the changes in the predictor variable of physical activity. 
+
+```{r glm}
+glucose_fit_act <- lm(glucose ~ physact, data = hers_nodi)
+```
+
+### ANOVA 
+
+```{r echo=FALSE}
+Anova(glucose_fit_act, type="II")
+```
+
+The Analysis of Variance shows the model to be significant, $ F_{(4)} = 4.431, p < 0.01 $. 
+
+### Summary 
+
+```{r echo=FALSE}
+summary(glucose_fit_act)
+```
+
+The summary of the model, because the `physact` variable is factored as ordered, instead of giving the differences to a basal value of it, it uses orthogonal polynomial contrasts and shows that the values of the variable behave as a linear equation.  
+
+### Plots
+
+```{r echo=FALSE}
+layout(matrix(1:4, nrow = 2))
+plot(glucose_fit_act)
+```
+
+# Contrasts
+
+## EMMEANS
+
+With the package `emmeans` and the homonymous function an object of the estimated marginal means (EMMs). Later the contrasts were created and saved in an object to be used later. The contrasts were applied following the order of the `physact` variable. Using these contrasts the differences were explored with a "sidak" method. It makes adjustments as if the estimates were independent.
+
+```{r emmeans}
+glucose_lstsqr <- emmeans(glucose_fit_act, "physact")
+```
+
+```{r emmeans1, echo=FALSE}
+glucose_lstsqr
+```
+
+```{r contr1}
+# Contrasts
+Contrasts_glu = list(MAvsLA          = c(-1, -1,  0,  1,  1),
+                     InteractMuchSo  = c( 1, -1,  0, -1,  1),
+                     MAvsLAforMuch   = c(-1,  0,  0,  0,  1),
+                     MAvsLAforSome   = c( 0, -1,  0,  1,  0),
+                     phyActvsControl = c( 1,  1, -4,  1,  1),
+                     MLAvsC          = c( 1,  0, -1,  0,  0),
+                     MMAvsC          = c( 0,  0, -1,  0,  1),
+                     SLAvsC          = c( 0,  1, -1,  0,  0),
+                     SMAvsC          = c( 0,  0, -1,  1,  0))
+```
+
+
+### Sidak
+
+Using these contrasts the differences were explored with a "sidak" method. It makes adjustments as if the estimates were independent. 
+
+```{r sidak}
+contrast(glucose_lstsqr, Contrasts_glu, adjust="sidak")
+```
+
+The differences were significant for the comparisons between *more v less* activity, the extreme levels of *much more v much less* activity, and *much more v control* with a $ p_{corr} < 0.05 $
+
+### Dunnettx
+
+For comparison the same contrasts were compared with the `dunnettx` method. It uses `emmeans`'s own ad hoc approximation to the Dunnett distribution for a family of esti-
+mates having pairwise correlations of 0.5. 
+
+```{r dunnettx}
+contrast(glucose_lstsqr, Contrasts_glu, adjust="dunnettx")
+```
+
+The same differences were significant with just little variation in the values of *p*. 
+
+### None
+
+Later the same contrasts were explored without any method of adustment of multiple comparisons.
+
+```{r none}
+contrast(glucose_lstsqr, Contrasts_glu, adjust="none")
+```
+
+Without any method of correction, the same comparisons as before are shown as significant with lower *p* values, and also the comparisons between the levels of *somewhat more v somewhat less* and *somewhat more v control*. 
+
+## Multcomp
+
+The same process was followed but with the package of `multcomp`. First the contrasts were saved as an object to be used later. 
+
+```{r multcomp}
+Input = ("
+Contrast.Name     MLA   SLA  AAA  SMA  MMA
+ MAvsLA            -1   -1    0    1    1
+ InteractMuchSo     1   -1    0   -1    1
+ MAvsLAforMuch     -1    0    0    0    1
+ MAvsLAforSome      0   -1    0    1    0
+ phyActvsControl    1    1   -4    1    1
+ MLAvsC             1    0   -1    0    0
+ MMAvsC             0    0   -1    0    1
+ SLAvsC             0    1   -1    0    0
+ SMAvsC             0    0   -1    1    0
+")
+
+
+Cont_glucose_Matriz = as.matrix(read.table(textConnection(Input), header=TRUE, row.names=1))
+```
+
+```{r cont_mc, echo=FALSE}
+Cont_glucose_Matriz
+```
+
+### General Linear Hyphoteses
+
+In an object named `G` the general linear hypotheses containing the multiple comparisons of the contrasts was saved with the `mcp` function on in the `linfct` argument of the function. 
+
+```{r linfct}
+G = glht(glucose_fit_act, linfct = mcp(physact = Cont_glucose_Matriz))
+```
+
+### Single-step
+
+Using an adjustment of *single-step* the comparisons were explored.
+
+```{r sing_st}
+summary(G, test=adjusted("single-step"))
+```
+
+Same as with the other package, the same levels of comparisons show to be significant with just little variation of *p*. 
+
+
+### Bonferroni & FDR
+
+The same comparisons were adjusted with the bonferroni and FDR methods for comparison. 
+
+```{r bonf}
+summary(G, test=adjusted("bonferroni"))
+```
+
+The same comparisons show to be significant. 
+
+```{r fdr}
+summary(G, test=adjusted("fdr"))
+```
+
+Being less strict than the previous methods, FDR show, besides the other significant comparisons, significant differences in the *somewhat more v somewhat less*, and *somewhat more v control* levels of comparisons. 

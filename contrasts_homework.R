@@ -7,6 +7,15 @@ hers <- read_csv("hersdata.csv")
 #Filtering just women without diabetes
 hers_nodi <- filter(hers, diabetes == "no")
 
+#Ordering physact variable
+physact_levels <- c("much less active",
+                    "somewhat less active",
+                    "about as active",
+                    "somewhat more active",
+                    "much more active")
+
+hers_nodi <- mutate(hers_nodi, physact = ordered(physact, levels = physact_levels))
+
 #Plot
 ggplot(hers_nodi, aes(physact, glucose)) + 
     geom_boxplot(na.rm = TRUE)
@@ -24,18 +33,19 @@ glucose_lstsqr <- emmeans(glucose_fit_act, "physact")
 glucose_lstsqr
 
 # Contrasts
-Contrasts_glu = list(MAvsLA          = c( 0, -1, 1, -1,  1),
-                     InteractMuchSo  = c( 0,  1, 1, -1, -1),
-                     MAvsLAforMuch   = c( 0, -1, 1,  0,  0),
-                     MAvsLAforSome   = c( 0,  0,  0, -1, 1),
-                     phyActvsControl = c(-4,  1,  1,  1, 1),
-                     MLAvsC          = c(-1,  1,  0,  0, 0),
-                     MMAvsC          = c(-1,  0,  1,  0, 0),
-                     SLAvsC          = c(-1,  0,  0,  1, 0),
-                     SMAvsC          = c(-1,  0,  0,  0, 1))
-
+Contrasts_glu = list(MAvsLA          = c(-1, -1,  0,  1,  1),
+                     InteractMuchSo  = c( 1, -1,  0, -1,  1),
+                     MAvsLAforMuch   = c(-1,  0,  0,  0,  1),
+                     MAvsLAforSome   = c( 0, -1,  0,  1,  0),
+                     phyActvsControl = c( 1,  1, -4,  1,  1),
+                     MLAvsC          = c( 1,  0, -1,  0,  0),
+                     MMAvsC          = c( 0,  0, -1,  0,  1),
+                     SLAvsC          = c( 0,  1, -1,  0,  0),
+                     SMAvsC          = c( 0,  0, -1,  1,  0))
 contrast(glucose_lstsqr, Contrasts_glu, adjust="sidak")
 
+#Null
+contrast(glucose_lstsqr, Contrasts_glu, adjust="none")
 contrast(glucose_lstsqr, Contrasts_glu, adjust="bonferroni")
 
 # Same cotrasts with multicomp library
